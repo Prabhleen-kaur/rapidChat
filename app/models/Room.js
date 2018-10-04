@@ -11,7 +11,8 @@ const Room = new Schema({
     },
     roomName: {
         type: String,
-        default: "New Group"
+        default: "New Group",
+        unique: true
     },
     admin: {},
     createdOn: {
@@ -28,7 +29,9 @@ const Room = new Schema({
     status:{
         type: Boolean,
         default: true
-    } 
+    },
+   adminId:String,
+   adminName:String
 });
 
 mongoose.model('Room', Room);

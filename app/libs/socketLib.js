@@ -24,6 +24,13 @@ let setServer = (server) => {
     let myIo = io.of('/')
 
     myIo.on('connection', (socket) => {
+        socket.on('createRoom',(data)=>
+        {
+
+            
+console.log('room created')
+
+        })
 
         console.log("on connection--emitting verify user");
 
@@ -114,6 +121,7 @@ myIo.to(socket.room).emit('online-user-list', result);
                     }
                 })
             }
+
 
 
 

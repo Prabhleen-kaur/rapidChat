@@ -13,8 +13,8 @@ app.put(`${baseUrl}/editChatRoom`, roomController.editChatRoom);
 app.get(`${baseUrl}/:chatRoomId/getChatRoom`, roomController.getChatRoom);
 //app.post(`${baseUrl}/sendInvite`, roomController.sendInvite);
 
-//app.get(`${baseUrl}/getChatRooms`, roomController.getChatRooms);
-//app.post(`${baseUrl}/joinChatRoom`, roomController.joinChatRoom);
+app.get(`${baseUrl}/getChatRooms`, roomController.getChatRooms);
+app.post(`${baseUrl}/joinChatRoom`, roomController.joinChatRoom);
 
 //app.get(`${baseUrl}/:chatRoomId/closeGroup`,roomController.closeChatRoom);
 }

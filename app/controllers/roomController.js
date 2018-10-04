@@ -14,29 +14,30 @@ const UserModel = mongoose.model('User');
 const AuthModel = mongoose.model('Auth');
 const RoomModel = mongoose.model('Room');
 
-   let createChatRoom=(req,res)=>
+   
+let createChatRoom1=(req,res)=>
    {
 let createRoom=()=>
 {
     console.log("create Room")
     return new Promise((resolve,reject)=>
 {
-    if(req.body.email) //email is present in body
+    if(req.body.userId) 
     {
 
-        console.log("req body email is there");
-        console.log(req.body);
+        console.log("userId is there");
+        console.log(req.body.userId);
         let newChatRoom = new RoomModel({ 
             roomId: shortid.generate(),
             roomName: req.body.roomName,
         });
 
-    UserModel.findOne({email:req.body.email},(err,userDetails)=> // email in body matches with the one in usermodel
+    UserModel.findOne({userId:req.body.userId},(err,userDetails)=>
 {
-if(err) //error case
+if(err)
 {
     console.log(err)
-    logger.error('Failed To Retrieve User Data', 'userController: findUser()', 10)
+    logger.error('Failed To Retrieve User Data', 'roomController: createRoom()', 10)
     let apiResponse = response.generate(true, 'Failed To Find User Details', 500, null)
     reject(apiResponse)
 }
@@ -46,9 +47,11 @@ if(err) //error case
         reject(apiResponse)
     }
     else{
-        let createdBy= {} //object
+        let createdBy= {} 
         createdBy.name=userDetails.firstName+userDetails.lastName;
-        createdBy.id=userDetails.id;
+        createdBy.id=userDetails.userId;
+        newChatRoom.adminId=createdBy.id;
+        newChatRoom.adminName=createdBy.name;
         newChatRoom.admin=createdBy
         newChatRoom.members.push(createdBy) 
         userDetails.groups.push(newChatRoom.roomId);
@@ -71,8 +74,8 @@ if(err) //error case
 })
     }
     else{
-        logger.error('User email dont exist', 'userController: createUser', 4)
-        let apiResponse = response.generate(true, 'User Already Present With this Email', 403, null)
+        logger.error('authToken', 'userController: createUser', 4)
+        let apiResponse = response.generate(true, 'userId doesnot exist', 403, null)
         reject(apiResponse)
     }
 })
@@ -92,6 +95,7 @@ let saveDetails = (data) => {
                 let apiResponse = response.generate(true, "unable to save user to chat room", 500, null);
                 reject(apiResponse);
             } else {
+                
                 logger.info("chatRoom saved to user details", "roomController: createChatRoom", 10);
                 resolve(data.newRoom);
             }
@@ -108,7 +112,216 @@ createRoom(req, res)
     res.send(err);
 });
    }
-let deleteChatRoom = (req, res) => {
+   
+   let createChatRoom=(req,res)=>
+   {
+       let checkRoom=()=>
+       {
+        return new Promise((resolve,reject)=>
+        {
+           RoomModel.findOne({roomName:req.body.roomName},(err,userDetails)=>
+           {
+               if(err)
+               {
+                logger.error('Failed To Retrieve room Data', 'roomController: createRoom()', 10)
+                let apiResponse = response.generate(true, 'Failed To Find room Details', 500, null)
+                reject(apiResponse)
+               }
+               else if (check.isEmpty(userDetails)){
+                logger.info("Room found", "roomController: getSingleRoom", 10);
+                let apiResponse = response.generate(false, "Room not found", 200, userDetails);
+                resolve(apiResponse);
+               }
+               else{
+                logger.error('Room Found', 'roomController: createRoom()', 7)
+                let apiResponse = response.generate(true, 'Room Found', 404, null)
+                reject(apiResponse)
+               }
+           }) 
+        }
+        )
+
+       }
+let createRoom=()=>
+{
+    console.log("create Room")
+    return new Promise((resolve,reject)=>
+{
+    
+    if(req.body.userId) 
+    {
+
+        console.log("userId is there");
+        console.log(req.body.userId);
+        let newChatRoom = new RoomModel({ 
+            roomId: shortid.generate(),
+            roomName: req.body.roomName,
+        });
+
+    UserModel.findOne({userId:req.body.userId},(err,userDetails)=>
+{
+if(err)
+{
+    console.log(err)
+    logger.error('Failed To Retrieve User Data', 'roomController: createRoom()', 10)
+    let apiResponse = response.generate(true, 'Failed To Find User Details', 500, null)
+    reject(apiResponse)
+}
+    else if (check.isEmpty(userDetails)) { 
+        logger.error('No User Found', 'roomController: createRoom()', 7)
+        let apiResponse = response.generate(true, 'No User Details Found', 404, null)
+        reject(apiResponse)
+    }
+   
+    else{
+        let createdBy= {} 
+        createdBy.name=userDetails.firstName+userDetails.lastName;
+        createdBy.id=userDetails.userId;
+        newChatRoom.adminId=createdBy.id;
+        newChatRoom.adminName=createdBy.name;
+        newChatRoom.admin=createdBy
+        newChatRoom.members.push(createdBy) 
+        userDetails.groups.push(newChatRoom.roomId);
+    }
+    newChatRoom.save((err,newChatRoom)=>
+{
+    if (err) {
+        logger.error(err.message, "RoomController:createChatRoom()", 10);
+        let apiResponse = response.generate("true", "Failed to create Chat Room", 500, null);
+        reject(apiResponse);
+    }
+    else {
+        logger.info("chat room created successfully", "RoomController:createChatRoom()", 10);
+        let data = {};
+        data.userdetails = userDetails;
+        data.newRoom = newChatRoom;
+        resolve(data);
+    }
+})
+})
+    }
+    else{
+        logger.error('authToken', 'userController: createUser', 4)
+        let apiResponse = response.generate(true, 'userId doesnot exist', 403, null)
+        reject(apiResponse)
+    }
+})
+}
+let saveDetails = (data) => {
+
+    return new Promise((resolve, reject) => {
+
+        UserModel.update({ userId: data.userdetails.userId }, { groups: data.userdetails.groups }, { multi: true }, (err, result) => {
+            if (err) {
+                logger.error(err.message, "roomController:createChatRoom()", 10);
+                let apiResponse = response.generate("true", "Failed to save user chat details.", 500, null);
+                reject(apiResponse);
+            }
+            else if (check.isEmpty(result)) {
+                logger.error("User details not Saved", "roomController: CreateChatRoom", 10);
+                let apiResponse = response.generate(true, "unable to save user to chat room", 500, null);
+                reject(apiResponse);
+            } else {
+                
+                logger.info("chatRoom saved to user details", "roomController: createChatRoom", 10);
+                resolve(data.newRoom);
+            }
+        });//end update for saving new room
+    });//end promise
+}
+checkRoom(req, res)
+.then(createRoom)
+.then(saveDetails)
+.then((result) => {
+    let apiResponse = response.generate(false, "room saved to user details", 200, result);
+    res.send(apiResponse);
+})
+.catch((err) => {
+    res.send(err);
+});
+   }
+   let deleteChatRoom = (req, res) => {
+
+    let findRoom = () => {
+        return new Promise((resolve, reject) => {
+            RoomModel.findOne({ roomName: req.body.roomName }, (err, roomDetails) => {
+                if (err) {
+                    logger.error('Failed to find rooms', "roomController: getSingleRoom", 10);
+                    let apiResponse = response.generate(true, "failed to find the Room", 500, null);
+                    reject(apiResponse);
+                }
+                else if (check.isEmpty(roomDetails)) {
+                    logger.info("No Room Found", "roomController: getSingleRoom", 10);
+                    let apiResponse = response.generate(true, "No Room Found", 404, null);
+                    reject(apiResponse);
+                }
+                else {
+                    logger.info("Room found", "roomController: getSingleRoom", 10);
+                    let apiResponse = response.generate(false, "Group found", 200, roomDetails);
+                    resolve(apiResponse);
+                }
+            });
+    });
+    }//end findRoom
+    let findAdmin = () => {
+        return new Promise((resolve, reject) => {
+            RoomModel.findOne({ adminId: req.body.userId }, (err, roomDetails) => {
+                if (err) {
+                    logger.error('Failed to find rooms', "roomController: getSingleRoom", 10);
+                    let apiResponse = response.generate(true, "failed to find the Room", 500, null);
+                    reject(apiResponse);
+                }
+                else if (check.isEmpty(roomDetails)) {
+                    logger.info("No Room Found", "roomController: getSingleRoom", 10);
+                    let apiResponse = response.generate(true, "No Room Found", 404, null);
+                    reject(apiResponse);
+                }
+                else {
+                    logger.info("Room found", "roomController: getSingleRoom", 10);
+                    let apiResponse = response.generate(false, "Group found", 200, roomDetails);
+                    resolve(apiResponse);
+                }
+            });
+    });
+    }
+
+   let deleteRoom = () => {
+    return new Promise((resolve, reject) => {
+        RoomModel.remove({ roomName: req.body.roomName }, (err, roomDetails) => {
+            if (err) {
+                logger.error(err.message, "roomController:deleteChatRoom()", 10);
+                let apiResponse = response.generate(true, "Failed to delete chat room", 500, null);
+                reject(apiResponse);
+            }
+            else if (check.isEmpty(roomDetails)) {
+                logger.info('No chat room found', "roomController:deleteChatRoom()", 10);
+                let apiResponse = response.generate(true, "No chat room found", 404, null);
+                reject(apiResponse);
+            }
+            else {
+                logger.info("Chat Room deleted", "roomrController: deleteChatRoom()", 10);
+                let apiResponse = response.generate(false, "Chat Room deleted", 200, roomDetails);
+                resolve(apiResponse);
+            }
+        });//end room
+    });
+    }// end deleteRoom
+
+
+    findRoom(req, res)
+    .then(findAdmin)
+    .then(deleteRoom)
+    .then((roomDetails) => {
+        let apiResponse = response.generate(false, 'Room deleted Successfully.', 200, roomDetails)
+        res.send(apiResponse)
+    })
+    .catch((err) => {
+        console.log(err);
+        res.send(err)
+    });
+
+}
+let deleteChatRoom1= (req, res) => {
 let findRoom =()=>
 {
     console.log('find room')
@@ -132,8 +345,8 @@ let findRoom =()=>
         }
         else {
             logger.info("room id found", "chatRoomrController: deleteChatRoom()", 10);
-         
-            resolve(roomDetails);
+            let apiResponse = response.generate(false, "Group found", 200, roomDetails);
+            resolve(apiResponse);
         }
     })
  }
@@ -143,11 +356,34 @@ let findRoom =()=>
  }   
 })
 }
+let checkAdmin=()=>
+{
+    RoomModel.findOne({adminId:req.body.userId},(err,roomDetails)=>
+    {
+        if(err)
+        {
+            logger.error(err.message, "chatRoomController:deleteChatRoom()", 10);
+            let apiResponse = response.generate("true", "Failed to chat room", 500, null);
+            reject(apiResponse);
+        }
+        else if (check.isEmpty(roomDetails)) {
+            logger.error('No room id found', "chatRoomController:deleteChatRoom()", 10);
+            let apiResponse = response.generate("true", "No userId found", 500, null);
+            reject(apiResponse);
+        }
+        else {
+            logger.info(" userId match with the adminId", "chatRoomController: deleteChatRoom()", 10);
+         
+            let apiResponse = response.generate(false, "UserId match with admin id", 200, roomDetails);
+                resolve(apiResponse);
+        } 
+    })
+}
 let deleteRoom=()=>
 {
-     if(req.body.roomId) {
+     if(req.body.roomName) {
 
-        RoomModel.remove({ roomId: req.body.roomId }, (err, retrievedRoomDetails) => {
+        RoomModel.remove({ roomName: req.body.roomName }, (err, roomDetails) => {
             if (err) {
                 logger.error(err.message, "chatRoomController:deleteChatRoom()", 10);
                 let apiResponse = response.generate("true", "Failed to chat room", 500, null);
@@ -159,9 +395,9 @@ let deleteRoom=()=>
                 reject(apiResponse);
             }
             else {
-                logger.info("Chat Room deleted", "chatRoomrController: deleteChatRoom()", 10);
-              
-                resolve(retrievedRoomDetails);
+                logger.info("Chat Room deleted", "chatRoomController: deleteChatRoom()", 10);
+                let apiResponse = response.generate(false, "Chat Room deleted", 200, roomDetails);
+                resolve(apiResponse);
             }
         });
     }
@@ -170,98 +406,81 @@ let deleteRoom=()=>
         let apiResponse = response.generate("true", " Id not found", 500, null);
         reject(apiResponse);
     }}
-    findRoom(req,res)
+    findRoom(req, res)
+    .then(checkAdmin)
     .then(deleteRoom)
-    .then((resolve)=>{
-        let apiResponse = response.generate(false, 'Room deleted', 200, resolve)
-        res.status(200)
+    .then((roomDetails) => {
+        let apiResponse = response.generate(false, 'Room deleted Successfully.', 200, roomDetails)
         res.send(apiResponse)
     })
     .catch((err) => {
-        console.log("errorhandler");
-        console.log("Error");
-        res.status(err.status)
+        console.log(err);
         res.send(err)
-    })
-}
-let editChatRoom = (req, res) => {
-    let findRoom =()=>
-{
-    console.log('find room')
-    return new Promise((resolve,reject)=>
-{
- if(req.body.roomId)
- {
-     console.log("room id is there")
-     RoomModel.findOne({roomId:req.body.roomId},(err,roomDetails)=>
-    {
-        if(err)
-        {
-            logger.error(err.message, "chatRoomController:deleteChatRoom()", 10);
-            let apiResponse = response.generate("true", "Failed to chat room", 500, null);
-            reject(apiResponse);
-        }
-        else if (check.isEmpty(roomDetails)) {
-            logger.error('No room id found', "chatRoomController:deleteChatRoom()", 10);
-            let apiResponse = response.generate("true", "No chat room found", 500, null);
-            reject(apiResponse);
-        }
-        else {
-            logger.info("room id found", "chatRoomrController: deleteChatRoom()", 10);
-         
-            resolve(roomDetails);
-        }
-    })
- }
- else{
-    let apiResponse = response.generate(true, '"room id" parameter is missing', 400, null)
-    reject(apiResponse)
- }   
-})
-}
-let editRoom=()=>
-{
-  if(req.body.roomId){
-    let options = req.body;
-      RoomModel.update({roomId:req.roomId}, options, { multi: true }, (err, roomDetails)=>
-    {
-        if (err) {
-            logger.error(err.message, "roomController:editChatRoom()", 10);
-            let apiResponse = response.generate(true, "Failed to edit chat room", 500, null);
-            res.send(apiResponse);
-        }
-        else if (check.isEmpty(roomDetails)) {
-            logger.error("chatRoom not found", "roomController: editChatRoom", 10);
-            let apiResponse = response.generate(true, "chatRoom not found", 500, null);
-            res.send(apiResponse);
-        }
-        else {
-            logger.info("Chat Room edited", "roomrController: editChatRoom()", 10);
-            let apiResponse = response.generate(false, "Chat Room edited", 200, roomDetails);
-            res.send(apiResponse);
-        }
-    })
-  }
-  else{
-      
-    let apiResponse = response.generate("true", "Id not mentioned", 500, null);
-    res.send(apiResponse);
-}
+    });
 
 }
-findRoom(req,res)
+let editChatRoom = (req, res) => {
+
+    let findRoom = () => {
+        return new Promise((resolve, reject) => {
+            RoomModel.findOne({ roomName: req.body.roomName }, (err, roomDetails) => {
+                if (err) {
+                    logger.error('Failed to find rooms', "roomController: getSingleRoom", 10);
+                    let apiResponse = response.generate(true, "failed to find the Room", 500, null);
+                    reject(apiResponse);
+                }
+                else if (check.isEmpty(roomDetails)) {
+                    logger.info("No Room Found", "roomController: getSingleRoom", 10);
+                    let apiResponse = response.generate(true, "No Room Found", 404, null);
+                    reject(apiResponse);
+                }
+                else {
+                    logger.info("Room found", "roomController: getSingleRoom", 10);
+                    let apiResponse = response.generate(false, "Group found", 200, roomDetails);
+                    resolve(apiResponse);
+                }
+            });
+    });
+    }//end findRoom
+
+
+let editRoom = () => {
+    return new Promise((resolve, reject) => {
+  
+    
+        RoomModel.update({ roomName: req.body.NewRoomName },(err, roomDetails) => {
+            if (err) {
+                logger.error(err.message, "roomController:editChatRoom()", 10);
+                let apiResponse = response.generate(true, "Failed to edit chat room", 500, null);
+                reject(apiResponse);
+            }
+            else if (check.isEmpty(roomDetails)) {
+                logger.info('No chat room found', "roomController:editChatRoom()", 10);
+                let apiResponse = response.generate(true, "No chat room found", 404, null);
+                reject(apiResponse);
+            }
+            else {
+                logger.info("Chat Room edited Successfully", "roomController: editChatRoom()", 10);
+                let apiResponse = response.generate(false, "Chat Room edited successfully", 200, roomDetails);
+                resolve(apiResponse);
+            }
+        });//end room
+    });
+    }//end editRoom
+
+    findRoom(req, res)
     .then(editRoom)
-    .then((resolve)=>{
-        let apiResponse = response.generate(false, 'Room edited', 200, resolve)
-        res.status(200)
+    .then((roomDetails) => {
+        let apiResponse = response.generate(false, 'Room edited Successfully.', 200, roomDetails)
         res.send(apiResponse)
     })
     .catch((err) => {
-        console.log("errorhandler");
-        console.log("Error");
-        res.status(err.status)
+        console.log(err);
         res.send(err)
-    })}
+    });
+
+
+}
 let getChatRoom = (req, res) => {
 
     if (check.isEmpty(req.params.chatRoomId)) {
@@ -345,7 +564,7 @@ let sendInvite = (req, res) => {
                         logger.error('Failed to retrieve Group Data', "chatRoom: findRoom", 10);
                         let apiResponse = response.generate(true, "failed to find the Group with given chatRoomId", 500, null);
                         reject(apiResponse);
-                    }/* if company details is not found */
+                    }
                     else if (check.isEmpty(roomDetails)) {
                         logger.error("No Group Found", "chatRoomController: findRoom", 10);
                         let apiResponse = response.generate(true, "No Group Details Found", 500, null);
@@ -388,20 +607,20 @@ let joinChatRoom = (req, res) => {
     let findUser = () => {
 
         return new Promise((resolve, reject) => {
-            if (check.isEmpty(req.body.userEmail)) {
+            if (check.isEmpty(req.body.userId)) {
                 logger.error("userEmail is missing", "chatRoomController: sendInvite", 10);
                 let apiResponse = response.generate(true, "userEmail is missing", 500, null);
                 reject(apiResponse);
             }
             else {
 
-                UserModel.findOne({ email: req.body.userEmail }, (err, userDetails) => {
+                UserModel.findOne({ userId:req.body.userId }, (err, userDetails) => {
                     /* handle the error if the user is not found */
                     if (err) {
                         logger.error('Failed to retrieve user Data', "userController: findUser()", 10);
-                        let apiResponse = response.generate(true, "failed to find the user with given email", 500, null);
+                        let apiResponse = response.generate(true, "failed to find the user with given id", 500, null);
                         reject(apiResponse);
-                    }/* if company details is not found */
+                    }
                     else if (check.isEmpty(userDetails)) {
                         logger.error("No User Found", "userController: findUser()", 10);
                         let apiResponse = response.generate(true, "No user Details Found", 500, null);
@@ -421,20 +640,20 @@ let joinChatRoom = (req, res) => {
     let findRoom = (details) => {
 
         return new Promise((resolve, reject) => {
-            if (check.isEmpty(req.body.chatRoomId)) {
+            if (check.isEmpty(req.body.roomName)) {
                 logger.error("chatRoomId is missing", "chatRoomController: sendInvite", 10);
                 let apiResponse = response.generate(true, "chatRoomId is missing", 500, null);
                 reject(apiResponse);
             }
             else {
 
-                RoomModel.findOne({ roomId: req.body.chatRoomId }, (err, roomDetails) => {
-                    /* handle the error if the user is not found */
+                RoomModel.findOne({ roomName: req.body.roomName }, (err, roomDetails) => {
+            /* handle the error if the user is not found */
                     if (err) {
                         logger.error('Failed to retrieve Group Data', "chatRoom: findRoom", 10);
                         let apiResponse = response.generate(true, "failed to find the Group with given chatRoomId", 500, null);
                         reject(apiResponse);
-                    }/* if company details is not found */
+                    }
                     else if (check.isEmpty(roomDetails)) {
                         logger.error("No Group Found", "chatRoomController: findRoom", 10);
                         let apiResponse = response.generate(true, "No Group Details Found", 500, null);
@@ -454,11 +673,18 @@ let joinChatRoom = (req, res) => {
 
         return new Promise((resolve, reject) => {
             let user = {};
+        if(user.name==`${details.userDetails.firstName} ${details.userDetails.lastName}`)
+        {
+console.log("error");
+logger.error("No Group Found", "chatRoomController: findRoom", 10);
+        }
+        else{
             user.name = `${details.userDetails.firstName} ${details.userDetails.lastName}`;
             user.Id = details.userDetails.userId;
+            
             details.roomDetails.members.push(user);
 
-            RoomModel.update({ roomId: req.body.chatRoomId }, { members: details.roomDetails.members }, { multi: true }, (err, result) => {
+            RoomModel.update({ roomName: req.body.roomName }, { members: details.roomDetails.members }, { multi: true }, (err, result) => {
                 if (err) {
                     logger.error(err.message, "chatRoomController:createChatRoom()", 10);
                     let apiResponse = response.generate("true", "Failed to save room details.", 500, null);
@@ -473,14 +699,14 @@ let joinChatRoom = (req, res) => {
                     resolve(details);
                 }
             });//end update for saving new room
-        });//end promise
+           }   });//end promise
     }//end saveRoom
     let saveUser = (details) => {
 
         return new Promise((resolve, reject) => {
-            details.userDetails.groups.push(req.body.chatRoomId);
+            details.userDetails.groups.push(req.body.roomName);
 
-            UserModel.update({ email: req.body.userEmail }, { groups: details.userDetails.groups }, { multi: true }, (err, result) => {
+            UserModel.update({ userId: req.body.userId }, { groups: details.userDetails.groups }, { multi: true }, (err, result) => {
                 if (err) {
                     logger.error(err.message, "chatRoomController:createChatRoom()", 10);
                     let apiResponse = response.generate("true", "Failed to save user chat details.", 500, null);
@@ -571,5 +797,6 @@ module.exports = {
     deleteChatRoom:deleteChatRoom,
     editChatRoom:editChatRoom,
     getChatRoom:getChatRoom,
-    
+   getChatRooms:getChatRooms,
+   joinChatRoom:joinChatRoom
 }

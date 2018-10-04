@@ -5,7 +5,7 @@
 const mongoose = require('mongoose'),
   Schema = mongoose.Schema;
 
-let userSchema = new Schema({
+let usersSchema = new Schema({
   userId: {
     type: String,
     default: '',
@@ -35,10 +35,11 @@ let userSchema = new Schema({
   createdOn :{
     type:Date,
     default:""
-  }
-
+  },
+  groups: [],
+ 
 
 })
 
 
-mongoose.model('User', userSchema);
+mongoose.model('User', usersSchema);
